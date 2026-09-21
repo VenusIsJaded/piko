@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/VenusIsJaded/piko/compare/v1.0.0...v1.0.1) (2026-09-21)
+
+### 🐛 Bug Fixes
+
+* **Instagram - Profile info:** Resolve User field from class definition ([da7db7e](https://github.com/VenusIsJaded/piko/commit/da7db7e7e9f2cdf3e8bcaf73068df42e68d6235c))
+
 ## 1.0.0 (2026-09-21)
 
 ### ⚠ BREAKING CHANGES
