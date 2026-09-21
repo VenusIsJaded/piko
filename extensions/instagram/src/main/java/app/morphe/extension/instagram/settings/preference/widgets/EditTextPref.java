@@ -6,6 +6,7 @@
 
 package app.morphe.extension.instagram.settings.preference.widgets;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.preference.EditTextPreference;
 import android.util.AttributeSet;
@@ -61,6 +62,7 @@ public class EditTextPref extends EditTextPreference {
         });
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected View onCreateView(ViewGroup parent) {
         return InstagramPreferenceStyle.createPreferenceView(getContext(), InstagramPreferenceStyle.TRAILING_CHEVRON);
@@ -68,6 +70,7 @@ public class EditTextPref extends EditTextPreference {
 
     @Override
     protected void onBindView(View view) {
+        super.onBindView(view);
         InstagramPreferenceStyle.bindText(this, view);
     }
 }
