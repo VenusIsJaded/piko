@@ -6,6 +6,7 @@
 
 package app.morphe.extension.instagram.settings.preference.widgets;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.preference.Preference;
@@ -66,7 +67,7 @@ public class ButtonPref extends Preference {
                             || key.equals("piko_export_pref") || key.equals("piko_import_pref")
                             || key.equals("piko_download_set_path")) {
                         ActivityHook.launchFragment((Activity) context, key);
-                        
+
                     } else if (key.equals("piko_reset_pref")) {
                         InstaUtils.showResetSettingsDialog(context);
 
@@ -115,6 +116,7 @@ public class ButtonPref extends Preference {
         };
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected View onCreateView(ViewGroup parent) {
         return InstagramPreferenceStyle.createPreferenceView(context, InstagramPreferenceStyle.TRAILING_CHEVRON,getIconResourceName(getKey()));
