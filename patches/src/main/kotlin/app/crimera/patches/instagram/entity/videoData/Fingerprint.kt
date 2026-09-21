@@ -21,12 +21,15 @@ internal object VideoVersionMapExtensionFingerprint : Fingerprint(
     name = "videoVersionMap",
 )
 
+// Matched on the class name alone: the video version models moved from
+// `com.instagram.model.mediasize` to `com.instagram.api.schemas` in 447, and both
+// names are unique app-wide, so pinning the package only invites another break.
 internal object ImmutablePandoVideoVersionMapperFingerprint : Fingerprint(
-    definingClass = "Lcom/instagram/model/mediasize/ImmutablePandoVideoVersion;",
+    definingClass = "/ImmutablePandoVideoVersion;",
     returnType = "Ljava/util/Map;",
 )
 
 internal object VideoVersionMapperFingerprint : Fingerprint(
-    definingClass = "Lcom/instagram/model/mediasize/VideoVersion;",
+    definingClass = "/VideoVersion;",
     returnType = "Ljava/util/Map;",
 )

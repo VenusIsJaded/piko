@@ -120,9 +120,18 @@ internal object InstagramMainActivityNotificationRelatedFingerprint : Fingerprin
     strings = listOf("nme_ig_post_post_creation_notif", "nme_ig_post_story_creation_notif"),
 )
 
-internal object VideoMediaInIGTVFeedHasVideoVariantsFingerprint : Fingerprint(
-    returnType = "Z",
-    strings = listOf("id: ", " type: ", "InvalidVideoMediaInIGTVFeed"),
+/**
+ * The `video_versions` getter on the media model.
+ *
+ * Until 439 this was reached indirectly, through an IGTV-feed soft-error reporter that
+ * spelled out `InvalidVideoMediaInIGTVFeed`. That reporter is gone in 447, so read the
+ * getter straight off the media model by its json key, the same way
+ * [LiveTreeMediaDictReelsMentionFingerprint] does for `reel_mentions`.
+ */
+internal object LiveTreeMediaDictVideoVersionsFingerprint : Fingerprint(
+    returnType = "Ljava/util/List;",
+    strings = listOf("video_versions"),
+    custom = { methodDef, _ -> methodDef.inMediaModel() },
 )
 
 internal object AslSessionRelatedFingerprint : Fingerprint(

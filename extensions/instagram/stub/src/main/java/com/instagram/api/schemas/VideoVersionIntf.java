@@ -1,4 +1,4 @@
-package com.instagram.model.mediasize;
+package com.instagram.api.schemas;
 
 
 public interface VideoVersionIntf {

@@ -8,7 +8,7 @@ package app.morphe.extension.instagram.entity;
 
 import java.util.Map;
 import java.util.HashMap;
-import com.instagram.user.model.FriendshipStatus;
+import com.instagram.api.schemas.RelationshipInfoDict;
 import app.morphe.extension.crimera.PikoUtils;
 
 public class UserFriendshipStatus extends Entity {
@@ -22,7 +22,7 @@ public class UserFriendshipStatus extends Entity {
     public Map<String, Boolean> getMappings(){
         try {
             Class<?> helperClass = Class.forName("classname");
-            return (Map) super.getMethod(helperClass, "methodname", new Class[]{FriendshipStatus.class}, this.obj);
+            return (Map) super.getMethod(helperClass, "methodname", new Class[]{RelationshipInfoDict.class}, this.obj);
         } catch (Exception e) {
             PikoUtils.logger(e);
         }
