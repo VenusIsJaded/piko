@@ -40,6 +40,8 @@ jobs:
       - name: Release
         uses: cycjimmy/semantic-release-action@v5
         id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
 
       - name: Attest
