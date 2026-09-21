@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/VenusIsJaded/piko/compare/v1.0.1...v1.0.2) (2026-09-21)
+
+### 🐛 Bug Fixes
+
+* stop Android lint MissingSuperCall from failing patch builds ([8a031be](https://github.com/VenusIsJaded/piko/commit/8a031bebf74f5f66541de7b4253c7ff1e6a60395))
+
 ## [1.0.1](https://github.com/VenusIsJaded/piko/compare/v1.0.0...v1.0.1) (2026-09-21)
 
 ### 🐛 Bug Fixes
