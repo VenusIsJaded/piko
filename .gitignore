@@ -135,3 +135,6 @@ bin/
 /local.properties
 
 .direnv
+
+# Local analysis scratch dir
+.work/
