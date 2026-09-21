@@ -124,6 +124,7 @@ public class ButtonPref extends Preference {
 
     @Override
     protected void onBindView(View view) {
+        super.onBindView(view);
         String key = getKey();
         InstagramPreferenceStyle.bindText(this, view);
         InstagramPreferenceStyle.bindIcon(view, getIconResourceName(key));
