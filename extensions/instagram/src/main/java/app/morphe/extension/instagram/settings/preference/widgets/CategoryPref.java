@@ -6,6 +6,7 @@
 
 package app.morphe.extension.instagram.settings.preference.widgets;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.preference.PreferenceCategory;
@@ -34,6 +35,7 @@ public class CategoryPref extends PreferenceCategory {
         this.firstCategory = firstCategory;
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected View onCreateView(ViewGroup parent) {
         TextView title = new TextView(getContext());
@@ -47,6 +49,7 @@ public class CategoryPref extends PreferenceCategory {
         return title;
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected void onBindView(View view) {
         TextView title = (TextView) view;

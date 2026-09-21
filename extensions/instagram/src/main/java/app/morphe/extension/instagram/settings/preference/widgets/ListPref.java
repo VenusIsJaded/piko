@@ -7,6 +7,7 @@
 
 package app.morphe.extension.instagram.settings.preference.widgets;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.preference.ListPreference;
 import android.util.AttributeSet;
@@ -73,6 +74,7 @@ public class ListPref extends ListPreference {
         setEntryValues(entriesValues);
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected View onCreateView(ViewGroup parent) {
         return InstagramPreferenceStyle.createPreferenceView(getContext(), InstagramPreferenceStyle.TRAILING_CHEVRON);
@@ -80,6 +82,7 @@ public class ListPref extends ListPreference {
 
     @Override
     protected void onBindView(View view) {
+        super.onBindView(view);
         InstagramPreferenceStyle.bindText(this, view);
     }
 }

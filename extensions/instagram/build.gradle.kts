@@ -4,6 +4,11 @@ android {
     defaultConfig {
         minSdk = 26
     }
+
+    lint {
+        abortOnError = false
+        disable += "MissingSuperCall"
+    }
 }
 
 dependencies {

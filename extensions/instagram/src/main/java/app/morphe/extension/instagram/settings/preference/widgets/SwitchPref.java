@@ -7,6 +7,7 @@
 
 package app.morphe.extension.instagram.settings.preference.widgets;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.preference.SwitchPreference;
 import android.preference.Preference;
@@ -76,6 +77,7 @@ public class SwitchPref extends SwitchPreference {
         }
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected View onCreateView(ViewGroup parent) {
         View view = InstagramPreferenceStyle.createPreferenceView(getContext(), InstagramPreferenceStyle.TRAILING_SWITCH);
@@ -86,6 +88,7 @@ public class SwitchPref extends SwitchPreference {
 
     @Override
     protected void onBindView(View view) {
+        super.onBindView(view);
         rowView = view;
         InstagramPreferenceStyle.bindText(this, view);
         InstagramPreferenceStyle.bindSwitchAccessibility(view, isChecked());
