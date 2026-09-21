@@ -74,11 +74,7 @@ val mediaDataEntity =
             }
 
             // Extracting get video variants.
-            VideoMediaInIGTVFeedHasVideoVariantsFingerprint.method.apply {
-                val firstInvokeInterfaceInstruction = getInstruction(indexOfFirstInstruction(Opcode.INVOKE_INTERFACE))
-                val getVideoVariantsMethodName = firstInvokeInterfaceInstruction.methodExtractor().name
-                GetVideoVariantsV1ExtensionFingerprint.changeFirstString(getVideoVariantsMethodName)
-            }
+            GetVideoVariantsV1ExtensionFingerprint.changeFirstString(LiveTreeMediaDictVideoVersionsFingerprint.method.name)
 
             // Extracting method is video used in media class.
             AslSessionRelatedFingerprint.method.apply {
