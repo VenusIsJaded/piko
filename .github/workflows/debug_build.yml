@@ -1,6 +1,9 @@
 name: Debug Build
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -34,14 +37,16 @@ jobs:
           ./gradlew lint --stacktrace 2>&1 | tee -a build.log || true
           ls -la patches/build/libs 2>&1 | tee -a build.log || true
           find . -path "*/build/reports/*" -type f 2>&1 | tee -a build.log || true
-          for f in $(find . -path "*lint-results*" -type f 2>/dev/null | head -n 20); do echo "=== $f ==="; cat "$f" | head -n 500; done 2>&1 | tee -a build.log || true
-          cat build.log | tail -n 1000
+          for f in $(find . -path "*lint-results*" -type f 2>/dev/null | head -n 20); do echo "=== $f ==="; cat "$f" | head -n 1000; done 2>&1 | tee -a build.log || true
+          echo "=== TAIL ==="
+          cat build.log | tail -n 2000
 
       - name: Commit log
+        if: always()
         run: |
           git config user.name "debug-bot"
           git config user.email "debug@example.com"
-          git add build.log
+          git add build.log || true
           git commit -m "debug: add build log" || echo "no changes"
           git push origin HEAD:main || echo "push failed"
 
