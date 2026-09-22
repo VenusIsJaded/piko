@@ -128,7 +128,7 @@ internal fun createComposePrismColorBridge(
                     // constructor-derived background fields yet; their cached object
                     // still gets refreshed above, only the black background writes
                     // are skipped for now.
-                    continue
+                    return@forEach
                 }
                 fieldsForType.forEach { backgroundField ->
                     addInstruction(
