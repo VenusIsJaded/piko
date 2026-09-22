@@ -120,12 +120,16 @@ internal fun createComposePrismColorBridge(
                 )
                 // 447 splits holders across 2 palette types; write only the fields
                 // belonging to this holder's type to keep identical theming.
-                val fieldsForType =
+                fieldsForType =
                     paletteRuntime.backgroundFieldsByType[holder.cachedPaletteField.type]
-                        ?: throw PatchException(
-                            "No Compose background fields for palette type " +
-                                holder.cachedPaletteField.type,
-                        )
+                if (fieldsForType == null) {
+                    // Palette types built without <init>(J...) (e.g. LX/N7p; on 447,
+                    // constructed via direct IPUTs in holder <clinit>) have no
+                    // constructor-derived background fields yet; their cached object
+                    // still gets refreshed above, only the black background writes
+                    // are skipped for now.
+                    continue
+                }
                 fieldsForType.forEach { backgroundField ->
                     addInstruction(
                         "iput-wide v0, v2, $backgroundField".toInstruction(),
@@ -470,6 +474,13 @@ private fun installComposePrismPaletteRuntime(
                     method.parameterTypes.isNotEmpty() &&
                     method.parameterTypes.all { it.toString() == "J" }
             }
+        if (paletteConstructors.isEmpty()) {
+            // LX/N7p; on 447 is built via direct IPUTs in holder <clinit>, not via
+            // <init>(J...); background-field derivation via constructor ordinals
+            // does not apply. Holders still get refresh methods; background writes
+            // for this type are skipped until holder-clinit IPUT tracing lands.
+            return@forEach
+        }
         val primaryBackgroundField =
             paletteConstructors
                 .mapNotNull { method ->
