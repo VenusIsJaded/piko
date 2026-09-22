@@ -74,7 +74,11 @@ val mediaDataEntity =
             }
 
             // Extracting get video variants.
-            GetVideoVariantsV1ExtensionFingerprint.changeFirstString(LiveTreeMediaDictVideoVersionsFingerprint.method.name)
+            VideoMediaInIGTVFeedHasVideoVariantsFingerprint.method.apply {
+                val firstInvokeInterfaceInstruction = getInstruction(indexOfFirstInstruction(Opcode.INVOKE_INTERFACE))
+                val getVideoVariantsMethodName = firstInvokeInterfaceInstruction.methodExtractor().name
+                GetVideoVariantsV1ExtensionFingerprint.changeFirstString(getVideoVariantsMethodName)
+            }
 
             // Extracting method is video used in media class.
             AslSessionRelatedFingerprint.method.apply {
@@ -101,12 +105,14 @@ val mediaDataEntity =
                 return true
             }
 
-            // The old backup path keyed off a `UserDetailFragment` getter returning
-            // `Lcom/instagram/model/androidlink/AndroidLink;`. That type no longer exists anywhere
-            // in 447 (zero occurrences across all 21 dex files), so the backup could never match
-            // and only served to mask a real failure of the primary anchor behind a confusing
-            // error. It has been removed; the primary anchor resolves `Media;->A8k()` on 447.
-            if (!EditMediaInfoFragmentMediaSizeFingerprint.method.resolveMediaList()) {
+            var foundMediaListMethod = EditMediaInfoFragmentMediaSizeFingerprint.method.resolveMediaList()
+
+            // Backup for media list extraction if the first fingerprint fails.
+            if (!foundMediaListMethod) {
+                foundMediaListMethod =
+                    GetAndroidLinkFromMediaObject.matchOrNull()?.method?.resolveMediaList() == true
+            }
+            if (!foundMediaListMethod) {
                 throw PatchException("Could not resolve the media list method")
             }
 

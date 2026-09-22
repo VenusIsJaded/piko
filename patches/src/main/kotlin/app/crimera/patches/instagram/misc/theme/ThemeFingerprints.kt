@@ -33,11 +33,9 @@ internal object CurrentSystemUiModeFingerprint : Fingerprint(
 internal object DarkModeSectionFingerprint : Fingerprint(
     returnType = "V",
     strings =
-        // The Compose trace string ends in a source line number that shifts whenever
-        // AccessibilityOptionsComposeFragment.kt is edited (267 on 439, 266 on 447),
-        // so match only the stable composable prefix.
         listOf(
-            "com.instagram.settings.impl.accessibility.DarkModeSection ",
+            "com.instagram.settings.impl.accessibility.DarkModeSection " +
+                "(AccessibilityOptionsComposeFragment.kt:267)",
             "dark",
             "light",
             "system",

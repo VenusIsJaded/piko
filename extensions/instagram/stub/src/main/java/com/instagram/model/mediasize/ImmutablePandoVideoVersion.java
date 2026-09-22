@@ -1,4 +1,4 @@
-package com.instagram.api.schemas;
+package com.instagram.model.mediasize;
 
 
 public class ImmutablePandoVideoVersion implements VideoVersionIntf{

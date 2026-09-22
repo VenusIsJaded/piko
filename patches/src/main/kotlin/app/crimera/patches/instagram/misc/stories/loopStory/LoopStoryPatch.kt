@@ -18,6 +18,7 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstructionOrThrow
 import app.morphe.util.indexOfFirstInstructionReversedOrThrow
+import app.morphe.util.indexOfFirstStringInstructionOrThrow
 import app.morphe.util.p0Register
 import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.Opcode
@@ -47,49 +48,31 @@ val loopStoryPatch =
                 val reelItemRegister = entryCast.registersUsed[0]
                 val reelItemType = entryCast.getReference<TypeReference>()!!.type
 
-                // 447 rebuilt the story player: Fms no longer contains the `resume`
-                // string nor the old seek(I,Z)V call. Progress is now a float set via
-                // LX/AE8;->A05(F)V (the only (F)V invoke in Fms, idx 195), fed by
-                // LX/9w8;->DSi(ReelItem)LX/AE8; (idx 193) after iget A25 (idx 191).
-                // Looping = reset progress to 0.0F and re-enter that block, mirroring
-                // the old seek(0,true)+goto-restart semantics.
-                // Verified against 447.0.0.55.81 (385311944).
-                val fetchIndex =
-                    indexOfFirstInstructionOrThrow {
-                        opcode == Opcode.INVOKE_INTERFACE &&
-                            getReference<MethodReference>()?.let { reference ->
-                                reference.returnType == "LX/AE8;" ||
-                                    (reference.returnType.endsWith("/AE8;") &&
-                                        reference.parameterTypes.map(CharSequence::toString) ==
-                                        listOf("Lcom/instagram/model/reels/ReelItem;"))
-                            } == true
-                    }
-
-                val progressCallIndex =
-                    indexOfFirstInstructionOrThrow(fetchIndex) {
-                        opcode == Opcode.INVOKE_VIRTUAL &&
-                            getReference<MethodReference>()?.let { reference ->
-                                reference.returnType == "V" &&
-                                    reference.parameterTypes.map(CharSequence::toString) ==
-                                    listOf("F")
-                            } == true
-                    }
-
-                val progressInstruction = getInstruction(progressCallIndex)
-                val progressObjectRegister = progressInstruction.registersUsed[0]
-                val progressFloatRegister = progressInstruction.registersUsed[1]
-
                 val restartIndex =
                     indexOfFirstInstructionReversedOrThrow(
-                        fetchIndex,
-                        Opcode.IGET_OBJECT,
+                        indexOfFirstStringInstructionOrThrow("resume"),
+                        Opcode.INVOKE_STATIC,
                     )
+
+                val seekInstruction =
+                    getInstruction(
+                        indexOfFirstInstructionOrThrow(restartIndex) {
+                            opcode == Opcode.INVOKE_INTERFACE &&
+                                getReference<MethodReference>()?.let { reference ->
+                                    reference.returnType == "V" &&
+                                        reference.parameterTypes.map(CharSequence::toString) ==
+                                        listOf("I", "Z")
+                                } == true
+                        },
+                    )
+                val positionRegister = seekInstruction.registersUsed[1]
+                val playingRegister = seekInstruction.registersUsed[2]
 
                 check(
                     p0Register > 0 &&
                         reelItemRegister > 0 &&
-                        progressObjectRegister < p0Register &&
-                        progressFloatRegister < p0Register,
+                        positionRegister < p0Register &&
+                        playingRegister < p0Register,
                 ) {
                     "Story restart block does not keep its state in local registers"
                 }
@@ -101,7 +84,8 @@ val loopStoryPatch =
                     move-result v0
                     if-eqz v0, :piko
                     check-cast v$reelItemRegister, $reelItemType
-                    const/4 v$progressFloatRegister, 0x0
+                    const/4 v$playingRegister, 0x1
+                    const/4 v$positionRegister, 0x0
                     goto :piko_loop
                     """.trimIndent(),
                     ExternalLabel("piko", getInstruction(0)),

@@ -15,10 +15,8 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.util.getReference
 import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 
 object BindMainFeedActionBarFingerprint : Fingerprint(
     strings = listOf("BindMainFeedActionBar"),
@@ -42,20 +40,6 @@ val mainFeedActionBarButtonPatch =
                         val prevInstruction = getInstruction(index - 1)
                         val prevInstructionOpcode = prevInstruction.opcode
                         if (prevInstructionOpcode == Opcode.IGET_OBJECT) {
-                            // 447 added an ImageView null-check (ActionBarTitleViewSwitcher
-                            // ->A06 ImageView at LX/9de idx 449) before the button
-                            // container check. Passing that ImageView where a ViewGroup
-                            // is expected fails verification (v9 ImageView vs ViewGroup
-                            // in LX/9de;->A08). Only accept the container: a ViewGroup
-                            // itself or a layout (e.g. MainFeedActionBar->A0B
-                            // LinearLayout at idx 477). Preserves add-buttons-to-bar.
-                            // Verified against 447.0.0.55.81 (385311944).
-                            val fieldType =
-                                prevInstruction.getReference<FieldReference>()?.type
-                                    ?: return@firstOrNull false
-                            if (fieldType != "Landroid/view/ViewGroup;" && !fieldType.endsWith("Layout;")) {
-                                return@firstOrNull false
-                            }
                             val layoutRegister = prevInstruction.registersUsed[0]
                             addInstruction(
                                 index,
