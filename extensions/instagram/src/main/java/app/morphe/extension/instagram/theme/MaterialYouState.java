@@ -116,9 +116,15 @@ final class MaterialYouState {
             boolean pikoSettingsActivity,
             boolean activityDark
     ) {
-        return pikoSettingsActivity
-                ? observedInstagramDark
-                : activityDark;
+        // The settings activity can be the first created activity (its own
+        // pre-create runs before any feed activity observed a value), leaving
+        // observedInstagramDark null. Unboxing it threw NPE and crashed
+        // SettingsActivity startup on 447. Fall back to the live activity state;
+        // identical behavior once an observation exists.
+        if (pikoSettingsActivity && observedInstagramDark != null) {
+            return observedInstagramDark;
+        }
+        return activityDark;
     }
 
     static Boolean updateObservedInstagramDarkForNativeMode(

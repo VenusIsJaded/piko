@@ -28,9 +28,12 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.all.misc.resources.addAppResources
 import app.morphe.patches.all.misc.resources.addResourcesPatch
 import app.morphe.util.findFreeRegister
+import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstruction
+import app.morphe.util.indexOfFirstInstructionOrThrow
 import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 @Suppress("unused")
 val settingsPatch =
@@ -94,8 +97,24 @@ val settingsPatch =
                 val strIndex = stringMatches[0].index
 
                 method.apply {
-                    val contextIndex = indexOfFirstInstruction(strIndex, Opcode.MOVE_RESULT_OBJECT)
-                    val contextInstruction = getInstruction(contextIndex)
+                    // 447 inserted a getString("launched_in_tab") read between the log
+                    // and the Context fetch, so the first MOVE_RESULT_OBJECT after the
+                    // string is now a String — passing it as Context failed verification
+                    // (v0 String vs Context in LX/3mI;->onCreate). Anchor on the
+                    // requireContext() result instead; same welcome-dialog behavior.
+                    // Verified against 447.0.0.55.81 (385311944).
+                    val requireContextIndex =
+                        indexOfFirstInstructionOrThrow(strIndex) {
+                            opcode == Opcode.INVOKE_VIRTUAL &&
+                                getReference<MethodReference>()?.let { ref ->
+                                    ref.name == "requireContext" &&
+                                        ref.returnType == "Landroid/content/Context;"
+                                } == true
+                        }
+                    val contextInstruction = getInstruction(requireContextIndex + 1)
+                    check(contextInstruction.opcode == Opcode.MOVE_RESULT_OBJECT) {
+                        "requireContext result must be followed by move-result-object"
+                    }
                     val contextRegister = contextInstruction.registersUsed[0]
 
                     addInstruction(
