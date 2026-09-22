@@ -1,0 +1,60 @@
+name: Debug Build2
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build with logs (mimic release)
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          ./gradlew build --stacktrace 2>&1 | tee build.log; echo "EXIT_CODE=${PIPESTATUS[0]}" >> build.log
+          ./gradlew generatePatchesList --stacktrace 2>&1 | tee -a build.log || true
+          ls -la patches/build/libs 2>&1 | tee -a build.log || true
+
+      - name: Push log to debug-logs branch
+        if: always()
+        run: |
+          git config user.name "debug-bot"
+          git config user.email "debug@example.com"
+          git checkout --orphan debug-logs2 || git checkout debug-logs2
+          git rm -rf . || true
+          mv build.log ./build.log || true
+          ls -la
+          git add build.log
+          git commit -m "debug log $(date)" || echo "no changes"
+          git push origin HEAD:debug-logs2 --force || echo "push failed"
+          git checkout main
