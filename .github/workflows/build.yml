@@ -4,9 +4,6 @@ name: Build patches
 # Actions -> "Build patches" -> "Run workflow" -> download the .mpp artifact.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
