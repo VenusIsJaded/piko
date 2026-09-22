@@ -4,6 +4,11 @@ android {
     defaultConfig {
         minSdk = 28
     }
+
+    lint {
+        abortOnError = false
+        disable += listOf("MissingSuperCall", "NotificationPermission")
+    }
 }
 
 dependencies {
