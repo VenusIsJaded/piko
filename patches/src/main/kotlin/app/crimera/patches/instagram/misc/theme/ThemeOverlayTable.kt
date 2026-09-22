@@ -199,10 +199,12 @@ private fun writePublicSubset(
             )
         }
     }
-    val missing = required - publicByName.keys
-    require(missing.isEmpty()) {
-        "Missing public resource ids: ${missing.sortedBy { "${it.type}/${it.name}" }}"
-    }
+    // 447 dropped some baseline tokens (e.g.
+    // baseline_neutral_10_with_surface_tint_dark_alpha_14) that older overlays still
+    // reference. There is nothing to override when stock no longer ships the id,
+    // so drop those instead of failing the whole Theme patch.
+    // Verified against 447.0.0.55.81 (385311944).
+    val present = required.filter { it in publicByName.keys }.toSet()
 
     val outputDocument = factory.newDocumentBuilder().newDocument()
     val outputRoot = outputDocument.createElement("resources").apply {
@@ -210,7 +212,7 @@ private fun writePublicSubset(
         setAttribute("id", sourceRoot.getAttribute("id"))
     }
     outputDocument.appendChild(outputRoot)
-    required
+    present
         .map { requireNotNull(publicByName[it]) }
         .sortedBy { it.getAttribute("id").removePrefix("0x").toLong(16) }
         .forEach { outputRoot.appendChild(outputDocument.importNode(it, true)) }
