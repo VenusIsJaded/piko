@@ -43,6 +43,23 @@ val filterStoriesPatch =
                     val index = reelItemCheckInstruction.location.index
                     val reelResponseItemRegister = reelItemCheckInstruction.registersUsed[0]
 
+                    // 447 reshaped the code after the check so index+2 can be a
+                    // move-result-object (branching to it fails verification with
+                    // "invalid use of move-result-object as branch target" in
+                    // LX/3xo;->unsafeParseFromJson). Target the first safe
+                    // instruction instead, preserving skip-filtered-item semantics.
+                    // Verified against 447.0.0.55.81 (385311944).
+                    val unsafeBranchTargets =
+                        setOf(
+                            Opcode.MOVE_RESULT,
+                            Opcode.MOVE_RESULT_OBJECT,
+                            Opcode.MOVE_RESULT_WIDE,
+                            Opcode.MOVE_EXCEPTION,
+                        )
+                    val pikoTargetIndex =
+                        instructions.first { it.location.index >= index + 2 && it.opcode !in unsafeBranchTargets }
+                            .location.index
+
                     addInstructionsWithLabels(
                         index + 1,
                         """
@@ -50,7 +67,7 @@ val filterStoriesPatch =
                         move-result-object v$reelResponseItemRegister
                         if-eqz v$reelResponseItemRegister, :piko
                         """.trimIndent(),
-                        ExternalLabel("piko", getInstruction(index + 2)),
+                        ExternalLabel("piko", getInstruction(pikoTargetIndex)),
                     )
 
                     enableSettings("storyFilters")
