@@ -11,8 +11,14 @@ private object ClipsViewPagerImplGetViewAtIndexFingerprint : Fingerprint(
     strings = listOf("ClipsViewPagerImpl_getViewAtIndex")
 )
 
+// The class declares two methods with this exact signature -- `onInterceptTouchEvent` and
+// `onTouchEvent`, both `(MotionEvent)Z`. Without a name the fingerprint matched both and Morphe
+// kept whichever it walked first, so the early `return false` could land in `onTouchEvent` and
+// swallow every touch on the Reels viewer instead of only pull-to-refresh. Pin the name.
 private object ClipsSwipeRefreshLayoutOnInterceptTouchEventFingerprint : Fingerprint (
+    name = "onInterceptTouchEvent",
     parameters = listOf("Landroid/view/MotionEvent;"),
+    returnType = "Z",
     definingClass = "Linstagram/features/clips/viewer/ui/ClipsSwipeRefreshLayout;"
 )
 

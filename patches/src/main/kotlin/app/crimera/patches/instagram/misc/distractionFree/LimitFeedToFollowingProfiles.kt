@@ -22,8 +22,20 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 private const val EXTENSION_CLASS_DESCRIPTOR =
     "$PATCHES_DESCRIPTOR/feed/LimitFeedToFollowingProfiles;"
 
+// Two classes ship a `toString` with both of these literals on 447 -- `LX/2vc;` and `LX/4Ve;` --
+// so this fingerprint was ambiguous and Morphe kept whichever it walked first. Only `LX/2vc;` is
+// the main-feed request: it is the one carrying `Ljava/util/Map;` header fields (A0M/A0N/A0O) that
+// this patch goes on to look up, and the one `MainFeedHeaderMapFinderFingerprint`'s method
+// actually reads (`iget-object LX/2vc;->A0M:Ljava/util/Map;`). `LX/4Ve;` has no `Map` field at
+// all, so binding to it made the later header-field lookup throw.
+//
+// Requiring the declaring class to actually have a `Map` field picks the right one. (The field is
+// not read inside `toString` itself, so this has to be a class predicate rather than a filter.)
 private object MainFeedRequestClassFingerprint : Fingerprint(
     strings = listOf("Request{mReason=", ", mInstanceNumber="),
+    custom = { _, classDef ->
+        classDef.fields.any { it.type == "Ljava/util/Map;" }
+    },
 )
 
 private object InitMainFeedRequestFingerprint : Fingerprint(

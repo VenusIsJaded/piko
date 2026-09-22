@@ -101,14 +101,12 @@ val mediaDataEntity =
                 return true
             }
 
-            var foundMediaListMethod = EditMediaInfoFragmentMediaSizeFingerprint.method.resolveMediaList()
-
-            // Backup for media list extraction if the first fingerprint fails.
-            if (!foundMediaListMethod) {
-                foundMediaListMethod =
-                    GetAndroidLinkFromMediaObject.matchOrNull()?.method?.resolveMediaList() == true
-            }
-            if (!foundMediaListMethod) {
+            // The old backup path keyed off a `UserDetailFragment` getter returning
+            // `Lcom/instagram/model/androidlink/AndroidLink;`. That type no longer exists anywhere
+            // in 447 (zero occurrences across all 21 dex files), so the backup could never match
+            // and only served to mask a real failure of the primary anchor behind a confusing
+            // error. It has been removed; the primary anchor resolves `Media;->A8k()` on 447.
+            if (!EditMediaInfoFragmentMediaSizeFingerprint.method.resolveMediaList()) {
                 throw PatchException("Could not resolve the media list method")
             }
 
