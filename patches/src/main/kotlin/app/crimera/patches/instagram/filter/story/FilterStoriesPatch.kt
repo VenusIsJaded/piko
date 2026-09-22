@@ -17,8 +17,11 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.util.getReference
+import app.morphe.util.indexOfFirstInstructionOrThrow
 import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 // Heavily based on @brosssh work.
 // https://github.com/brosssh/instagram-morphe-patches-library/blob/dev/patch-library/src/main/kotlin/app/morphe/library/instagram/patches/FilterStoriesListPatch.kt
@@ -39,9 +42,26 @@ val filterStoriesPatch =
 
                 method.apply {
 
-                    val reelItemCheckInstruction = instructions.last { it.location.index < strIndex && it.opcode == Opcode.IF_EQZ }
-                    val index = reelItemCheckInstruction.location.index
-                    val reelResponseItemRegister = reelItemCheckInstruction.registersUsed[0]
+                    // 447: this method is a string==key cascade; the last IF_EQZ before
+                    // "tray" tests a boolean from String.equals, not the item object —
+                    // using its register made the filter take a Boolean for Object
+                    // (VerifyError v3 Boolean vs Object in LX/3xo). Anchor on the tray
+                    // list add instead: parseFromJsonParser -> move-result-object
+                    // (item) -> add(item) to the tray ArrayList. Filter the item right
+                    // before add; null skips the add. Same hide-category behavior.
+                    // Verified against 447.0.0.55.81 (385311944, add at idx 200).
+                    val addIndex =
+                        indexOfFirstInstructionOrThrow(strIndex) {
+                            (opcode == Opcode.INVOKE_INTERFACE || opcode == Opcode.INVOKE_VIRTUAL) &&
+                                getReference<MethodReference>()?.let { ref ->
+                                    ref.name == "add" &&
+                                        ref.returnType == "Z" &&
+                                        ref.parameterTypes.map(CharSequence::toString) ==
+                                        listOf("Ljava/lang/Object;")
+                                } == true
+                        }
+                    val reelResponseItemRegister =
+                        getInstruction(addIndex).registersUsed[1]
 
                     // 447 reshaped the code after the check so index+2 can be a
                     // move-result-object (branching to it fails verification with
@@ -57,11 +77,11 @@ val filterStoriesPatch =
                             Opcode.MOVE_EXCEPTION,
                         )
                     val pikoTargetIndex =
-                        instructions.first { it.location.index >= index + 2 && it.opcode !in unsafeBranchTargets }
+                        instructions.first { it.location.index > addIndex && it.opcode !in unsafeBranchTargets }
                             .location.index
 
                     addInstructionsWithLabels(
-                        index + 1,
+                        addIndex,
                         """
                         invoke-static{v$reelResponseItemRegister}, $PATCHES_DESCRIPTOR/filter/story/FilterStory;->filter(Ljava/lang/Object;)Ljava/lang/Object;
                         move-result-object v$reelResponseItemRegister
