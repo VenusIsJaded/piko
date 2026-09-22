@@ -1,0 +1,37 @@
+name: Cache JDK
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download JDK
+        run: |
+          set -e
+          # Download Temurin 17
+          curl -L -o jdk.tar.gz "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.11%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz"
+          ls -lh jdk.tar.gz
+          # Split into 90MB chunks to stay under 100MB limit
+          split -b 90M jdk.tar.gz jdk_part_
+          ls -lh jdk_part_*
+
+      - name: Commit to jdk-cache branch
+        run: |
+          git config user.name "jdk-bot"
+          git config user.email "jdk@example.com"
+          git checkout --orphan jdk-cache || git checkout jdk-cache
+          git rm -rf . || true
+          mv /home/runner/work/piko/piko/jdk_part_* ./ || mv jdk_part_* ./ || true
+          ls -lh
+          git add jdk_part_*
+          git commit -m "cache jdk $(date)" || echo "no changes"
+          git push origin HEAD:jdk-cache --force || echo "push failed"
