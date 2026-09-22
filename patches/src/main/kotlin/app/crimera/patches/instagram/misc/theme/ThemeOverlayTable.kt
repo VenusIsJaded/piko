@@ -30,34 +30,6 @@ internal data class OverlayValues(
         require(nightApi34 == null || nightApi34.keys == night.keys)
         require(dayDrawables.keys == nightDrawables.keys)
     }
-
-    /** Keep only entries whose key matches [predicate]; preserves key-set invariants. */
-    fun filterKeys(predicate: (String) -> Boolean): OverlayValues {
-        // Day/night (+api34) share key sets by contract; intersect to keep them equal
-        // even if a key ever diverges between maps.
-        val keepColors = (day.keys + night.keys).filter(predicate).toSet()
-        val keepDrawables = (dayDrawables.keys + nightDrawables.keys).filter(predicate).toSet()
-        return copy(
-            day = day.filterKeys { it in keepColors },
-            night = night.filterKeys { it in keepColors },
-            dayApi34 = dayApi34?.filterKeys { it in keepColors },
-            nightApi34 = nightApi34?.filterKeys { it in keepColors },
-            dayDrawables = dayDrawables.filterKeys { it in keepDrawables },
-            nightDrawables = nightDrawables.filterKeys { it in keepDrawables },
-        )
-    }
-}
-
-private fun readPublicNames(sourcePublic: File): Set<String> {
-    val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(sourcePublic)
-    val nodes = document.getElementsByTagName("public")
-    return buildSet {
-        for (index in 0 until nodes.length) {
-            val element = nodes.item(index) as? org.w3c.dom.Element ?: continue
-            // Match writePublicSubset: color keys by name, drawables by name too.
-            add(element.getAttribute("name"))
-        }
-    }
 }
 
 internal fun buildThemeOverlayTable(
@@ -72,14 +44,6 @@ internal fun buildThemeOverlayTable(
     require(packageName.isNotBlank())
     require(values.day.keys == values.night.keys)
 
-    // 447 dropped some baseline tokens the palette still maps. Every values entry
-    // must have a public id, so filter the overlay to what stock actually ships.
-    // Keeps day/night/api34/drawable key sets in sync per OverlayValues invariants.
-    // Verified against 447.0.0.55.81 (385311944).
-    val available = readPublicNames(sourcePublic)
-    val filtered =
-        values.filterKeys { it in available || it.startsWith("piko_") }
-
     val workRoot = Files.createTempDirectory("piko-theme-overlay").toFile()
     try {
         sourceManifest
@@ -91,34 +55,34 @@ internal fun buildThemeOverlayTable(
         writePublicSubset(
             source = sourcePublic,
             output = targetValues.resolve("public.xml"),
-            values = filtered,
+            values = values,
         )
 
         writeValuesXml(
             targetPackage.resolve("res/values-v31/colors.xml"),
-            filtered.day,
+            values.day,
         )
         writeValuesXml(
             targetPackage.resolve("res/values-night-v31/colors.xml"),
-            filtered.night,
+            values.night,
         )
         writeTypedItemsXml(
             targetPackage.resolve("res/values-v31/drawables.xml"),
             "drawable",
-            filtered.dayDrawables,
+            values.dayDrawables,
         )
         writeTypedItemsXml(
             targetPackage.resolve("res/values-night-v31/drawables.xml"),
             "drawable",
-            filtered.nightDrawables,
+            values.nightDrawables,
         )
-        filtered.dayApi34?.let { api34Values ->
+        values.dayApi34?.let { api34Values ->
             writeValuesXml(
                 targetPackage.resolve("res/values-v34/colors.xml"),
                 api34Values,
             )
         }
-        filtered.nightApi34?.let { api34Values ->
+        values.nightApi34?.let { api34Values ->
             writeValuesXml(
                 targetPackage.resolve("res/values-night-v34/colors.xml"),
                 api34Values,
@@ -235,12 +199,10 @@ private fun writePublicSubset(
             )
         }
     }
-    // 447 dropped some baseline tokens (e.g.
-    // baseline_neutral_10_with_surface_tint_dark_alpha_14) that older overlays still
-    // reference. There is nothing to override when stock no longer ships the id,
-    // so drop those instead of failing the whole Theme patch.
-    // Verified against 447.0.0.55.81 (385311944).
-    val present = required.filter { it in publicByName.keys }.toSet()
+    val missing = required - publicByName.keys
+    require(missing.isEmpty()) {
+        "Missing public resource ids: ${missing.sortedBy { "${it.type}/${it.name}" }}"
+    }
 
     val outputDocument = factory.newDocumentBuilder().newDocument()
     val outputRoot = outputDocument.createElement("resources").apply {
@@ -248,7 +210,7 @@ private fun writePublicSubset(
         setAttribute("id", sourceRoot.getAttribute("id"))
     }
     outputDocument.appendChild(outputRoot)
-    present
+    required
         .map { requireNotNull(publicByName[it]) }
         .sortedBy { it.getAttribute("id").removePrefix("0x").toLong(16) }
         .forEach { outputRoot.appendChild(outputDocument.importNode(it, true)) }

@@ -19,10 +19,8 @@ import app.crimera.utils.methodExtractor
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstruction
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import kotlin.properties.Delegates
 
 var CHAT_CONTEXT_BUTTON_SUPER_CLASS: String by Delegates.notNull()
@@ -90,50 +88,6 @@ val commentDataEntity =
             }
 
             val commentObjectFields = mutableClassDefBy { it.type == commentObject }.fields
-
-            if (commentMediaHelperClass == "fieldName") {
-                // 447 removed the `const/4` + `new-instance` pattern this entity relied on
-                // (LX/GzY;->A00 has 20+ NEW_INSTANCEs, none preceded by CONST_4), so the
-                // lookup above leaves the "fieldName" sentinel and the `first {}` below
-                // throws "Collection contains no element matching the predicate".
-                //
-                // On 447 the helper is LX/Gzb;, the only field type of the comment object
-                // (LX/Gez;) whose class carries the media field:
-                //   LX/Gzb;->A02:Lcom/instagram/feed/media/Media;
-                // constructed in A00 via `new-instance LX/Gzb;` + `<init>(IUJ, Medium, Media, String)`.
-                // Prefer the constructor signature (same intent as the old pattern), fall back
-                // to the field-type scan so a future re-obfuscation of A00 still resolves.
-                // Verified against com.instagram.android 447.0.0.55.81 (385311944).
-                RandomGetCommentObjectMediaFingerprint.method.apply {
-                    instructions.filter { it.opcode == Opcode.NEW_INSTANCE }.forEach { insn ->
-                        if (commentMediaHelperClass != "fieldName") return@forEach
-                        try {
-                            val nextInvokeDirectIndex =
-                                indexOfFirstInstruction(insn.location.index, Opcode.INVOKE_DIRECT)
-                            val ref =
-                                getInstruction(nextInvokeDirectIndex)
-                                    .getReference<MethodReference>()
-                            if (ref?.parameterTypes?.any { it.toString() == MEDIA_CLASS_NAME } == true) {
-                                commentMediaHelperClass = ref.definingClass
-                            }
-                        } catch (_: Exception) {
-                        }
-                    }
-                }
-
-                if (commentMediaHelperClass == "fieldName") {
-                    commentMediaHelperClass =
-                        commentObjectFields.first { field ->
-                            try {
-                                classDefBy { it.type == field.type }
-                                    .fields
-                                    .any { it.type == MEDIA_CLASS_NAME }
-                            } catch (_: Exception) {
-                                false
-                            }
-                        }.type
-                }
-            }
 
             val commentMediaHelperFieldName = commentObjectFields.first { it.type == commentMediaHelperClass }.name
             GetImageMediaExtension.changeFirstString(commentMediaHelperFieldName)

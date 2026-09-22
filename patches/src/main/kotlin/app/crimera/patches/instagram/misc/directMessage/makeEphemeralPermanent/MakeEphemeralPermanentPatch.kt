@@ -47,28 +47,20 @@ val makeEphemeralPermanentPatch =
                 val expireAtStringIndex = stringMatches[0].index
                 val viewModeStringIndex = stringMatches[1].index
                 method.apply {
-                    val viewModeInstructionExtraction =
-                        instructions
-                            .first {
-                                it.location.index > viewModeStringIndex &&
-                                    it.opcode == Opcode.IPUT_OBJECT &&
-                                    it.fieldExtractor().returnType == "java.lang.String"
-                            }.fieldExtractor()
+                    val viewModeIPutObjectInstruction =
+                        getInstruction(
+                            indexOfFirstInstruction(viewModeStringIndex, Opcode.IPUT_OBJECT),
+                        )
+
+                    val viewModeInstructionExtraction = viewModeIPutObjectInstruction.fieldExtractor()
                     val ephemeralMediaClassName = extensionToClassName(viewModeInstructionExtraction.definingClass)
                     val viewModeFieldName = viewModeInstructionExtraction.name
 
-                    // 447 reordered the switch cases: the last IPUT before "view_mode"
-                    // is now A0B:List, not the expiry Long — reading it as Long threw
-                    // NoSuchFieldError A0B:Long in LX/1Ae. Anchor each field to its own
-                    // JSON key instead: url_expire_at_secs -> Long field (A07 on 447),
-                    // view_mode -> String field (A0A). Same make-permanent behavior.
-                    // Verified against 447.0.0.55.81 (385311944).
                     val expireAtInstructionExtraction =
                         instructions
-                            .first {
-                                it.location.index > expireAtStringIndex &&
-                                    it.opcode == Opcode.IPUT_OBJECT &&
-                                    it.fieldExtractor().returnType == "java.lang.Long"
+                            .last {
+                                it.location.index < viewModeStringIndex &&
+                                    it.opcode == Opcode.IPUT_OBJECT
                             }.fieldExtractor()
                     val expireAtFieldName = expireAtInstructionExtraction.name
 

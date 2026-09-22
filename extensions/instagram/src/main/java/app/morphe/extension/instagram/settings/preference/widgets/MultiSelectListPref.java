@@ -6,7 +6,6 @@
 
 package app.morphe.extension.instagram.settings.preference.widgets;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
@@ -80,7 +79,6 @@ public class MultiSelectListPref extends MultiSelectListPreference {
         setEntryValues(entriesValues);
     }
 
-    @SuppressLint("MissingSuperCall")
     @Override
     protected View onCreateView(ViewGroup parent) {
         return InstagramPreferenceStyle.createPreferenceView(getContext(), InstagramPreferenceStyle.TRAILING_CHEVRON);

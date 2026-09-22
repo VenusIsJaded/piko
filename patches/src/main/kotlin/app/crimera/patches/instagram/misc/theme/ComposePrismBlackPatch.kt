@@ -83,7 +83,7 @@ internal data class ComposePrismPaletteHolder(
 )
 
 internal data class ComposePrismPaletteRuntime(
-    val backgroundFieldsByType: Map<String, List<FieldReference>>,
+    val backgroundFields: List<FieldReference>,
     val holders: List<ComposePrismPaletteHolder>,
 )
 
@@ -118,19 +118,7 @@ internal fun createComposePrismColorBridge(
                 addInstruction(
                     "sget-object v2, ${holder.cachedPaletteField}".toInstruction(),
                 )
-                // 447 splits holders across 2 palette types; write only the fields
-                // belonging to this holder's type to keep identical theming.
-                val fieldsForType =
-                    paletteRuntime.backgroundFieldsByType[holder.cachedPaletteField.type]
-                if (fieldsForType == null) {
-                    // Palette types built without <init>(J...) (e.g. LX/N7p; on 447,
-                    // constructed via direct IPUTs in holder <clinit>) have no
-                    // constructor-derived background fields yet; their cached object
-                    // still gets refreshed above, only the black background writes
-                    // are skipped for now.
-                    return@forEach
-                }
-                fieldsForType.forEach { backgroundField ->
+                paletteRuntime.backgroundFields.forEach { backgroundField ->
                     addInstruction(
                         "iput-wide v0, v2, $backgroundField".toInstruction(),
                     )
@@ -352,13 +340,9 @@ private fun installComposePrismPaletteRuntime(
             } == true
         if (readsPrismField) holderClasses += classDef
     }
-    // 447 ships 4 cached holders instead of 2 (extra day/night variants share the
-    // same palette type); downstream already maps over all holders and requires a
-    // single palette type + consistent ordinals, so accept any count >= 2.
-    // Verified against 447.0.0.55.81 (385311944, found 4).
-    if (holderClasses.size < EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
+    if (holderClasses.size != EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
         throw PatchException(
-            "Expected at least $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS cached Compose prism " +
+            "Expected $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS cached Compose prism " +
                 "palette holders, found ${holderClasses.size}",
         )
     }
@@ -451,99 +435,80 @@ private fun installComposePrismPaletteRuntime(
         )
     }
 
-    // 447 splits the 4 holders across 2 palette types (e.g. LX/N7p; + LX/2Im;);
-    // resolve the primary + BDS background fields per type so each holder is
-    // written with fields of its own type, preserving identical theming.
-    // Verified against 447.0.0.55.81 (385311944).
     val paletteTypes = holders.map { it.cachedPaletteField.type }.distinct()
-    if (paletteTypes.isEmpty()) {
-        throw PatchException("Cached Compose prism palettes use different types: $paletteTypes")
+    if (paletteTypes.size != 1) {
+        throw PatchException(
+            "Cached Compose prism palettes use different types: $paletteTypes",
+        )
     }
-    // holderInitializers is index-aligned with holderClasses and holders.
-    val backgroundFieldsByType = mutableMapOf<String, List<FieldReference>>()
-    paletteTypes.forEach { paletteType ->
-        val typeIndices =
-            holders.mapIndexedNotNull { index, holder ->
-                if (holder.cachedPaletteField.type == paletteType) index else null
-            }
-        val typeInitializers = typeIndices.map { holderInitializers[it] }
-        val paletteClass = patchContext.mutableClassDefBy(paletteType)
-        val paletteConstructors =
-            paletteClass.methods.filter { method ->
-                method.name == "<init>" &&
-                    method.parameterTypes.isNotEmpty() &&
-                    method.parameterTypes.all { it.toString() == "J" }
-            }
-        if (paletteConstructors.isEmpty()) {
-            // LX/N7p; on 447 is built via direct IPUTs in holder <clinit>, not via
-            // <init>(J...); background-field derivation via constructor ordinals
-            // does not apply. Holders still get refresh methods; background writes
-            // for this type are skipped until holder-clinit IPUT tracing lands.
-            return@forEach
+    val paletteClass = patchContext.mutableClassDefBy(paletteTypes.single())
+    val paletteConstructors =
+        paletteClass.methods.filter { method ->
+            method.name == "<init>" &&
+                method.parameterTypes.isNotEmpty() &&
+                method.parameterTypes.all { it.toString() == "J" }
         }
-        val primaryBackgroundField =
-            paletteConstructors
-                .mapNotNull { method ->
-                    runCatching {
-                        composePrismPrimaryBackgroundField(method)
-                    }.getOrNull()
-                }
-                .distinct()
-                .singleOrNull()
-                ?: throw PatchException(
-                    "Expected one cached Compose prism primary background field for $paletteType",
-                )
-        val rootBackgroundParameterOrdinal =
-            composePrismRootBackgroundParameterOrdinal(
-                paletteType = paletteClass.type,
-                holderInitializers = typeInitializers,
+    val primaryBackgroundField =
+        paletteConstructors
+            .mapNotNull { method ->
+                runCatching {
+                    composePrismPrimaryBackgroundField(method)
+                }.getOrNull()
+            }
+            .distinct()
+            .singleOrNull()
+            ?: throw PatchException(
+                "Expected one cached Compose prism primary background field",
             )
-        val bdsBackgroundField =
-            paletteConstructors
-                .mapNotNull { method ->
-                    runCatching {
-                        composePrismBackgroundField(
-                            constructor = method,
-                            parameterOrdinal = rootBackgroundParameterOrdinal,
-                        )
-                    }.getOrNull()
-                }
-                .distinct()
-                .singleOrNull()
-                ?: throw PatchException(
-                    "Expected one cached Compose BDS root background field for $paletteType",
-                )
-        val backgroundFields =
-            listOf(primaryBackgroundField, bdsBackgroundField).distinct()
-        if (backgroundFields.size != 2) {
+    val rootBackgroundParameterOrdinal =
+        composePrismRootBackgroundParameterOrdinal(
+            paletteType = paletteClass.type,
+            holderInitializers = holderInitializers,
+        )
+    val bdsBackgroundField =
+        paletteConstructors
+            .mapNotNull { method ->
+                runCatching {
+                    composePrismBackgroundField(
+                        constructor = method,
+                        parameterOrdinal = rootBackgroundParameterOrdinal,
+                    )
+                }.getOrNull()
+            }
+            .distinct()
+            .singleOrNull()
+            ?: throw PatchException(
+                "Expected one cached Compose BDS root background field",
+            )
+    val backgroundFields =
+        listOf(primaryBackgroundField, bdsBackgroundField).distinct()
+    if (backgroundFields.size != 2) {
+        throw PatchException(
+            "Compose primary and BDS root backgrounds must use different fields",
+        )
+    }
+    backgroundFields.forEach { backgroundField ->
+        val definition =
+            paletteClass.fields.singleOrNull { field ->
+                field.name == backgroundField.name && field.type == backgroundField.type
+            } ?: throw PatchException(
+                "Cached Compose background field is missing",
+            )
+        if (
+            !AccessFlags.PUBLIC.isSet(definition.accessFlags) ||
+            AccessFlags.STATIC.isSet(definition.accessFlags) ||
+            !AccessFlags.FINAL.isSet(definition.accessFlags)
+        ) {
             throw PatchException(
-                "Compose primary and BDS root backgrounds must use different fields for $paletteType",
+                "Cached Compose background field has an invalid shape",
             )
         }
-        backgroundFields.forEach { backgroundField ->
-            val definition =
-                paletteClass.fields.singleOrNull { field ->
-                    field.name == backgroundField.name && field.type == backgroundField.type
-                } ?: throw PatchException(
-                    "Cached Compose background field is missing for $paletteType",
-                )
-            if (
-                !AccessFlags.PUBLIC.isSet(definition.accessFlags) ||
-                AccessFlags.STATIC.isSet(definition.accessFlags) ||
-                !AccessFlags.FINAL.isSet(definition.accessFlags)
-            ) {
-                throw PatchException(
-                    "Cached Compose background field has an invalid shape for $paletteType",
-                )
-            }
-            definition.accessFlags =
-                composePrismBlackFieldAccessFlags(definition.accessFlags)
-        }
-        backgroundFieldsByType[paletteType] = backgroundFields
+        definition.accessFlags =
+            composePrismBlackFieldAccessFlags(definition.accessFlags)
     }
 
     return ComposePrismPaletteRuntime(
-        backgroundFieldsByType = backgroundFieldsByType,
+        backgroundFields = backgroundFields,
         holders = holders,
     )
 }
@@ -557,9 +522,9 @@ internal fun composePrismRootBackgroundParameterOrdinal(
     paletteType: String,
     holderInitializers: List<List<Instruction>>,
 ): Int {
-    if (holderInitializers.size < EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
+    if (holderInitializers.size != EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
         throw PatchException(
-            "Expected at least $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS Compose prism palette " +
+            "Expected $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS Compose prism palette " +
                 "initializers, found ${holderInitializers.size}",
         )
     }

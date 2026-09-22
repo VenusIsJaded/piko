@@ -11,10 +11,7 @@ import app.morphe.patcher.Fingerprint
 
 internal const val HANDLE_COMMENT_BUTTON_EXTENSION_CLASS = "${COMMENT_BUTTON_EXTENSION_CLASS}/HandleCommentButton;"
 
-// The builder returns the concrete `ArrayList` on 447, not the `List` interface, so pinning the
-// exact return type matched nothing and this fingerprint threw. The string already identifies
-// the method uniquely (it appears in exactly one method in the APK), so drop the return type
-// rather than swapping in another concrete type a later rebuild can change again.
 internal object AddCommentButtonFingerprint : Fingerprint(
+    returnType = "Ljava/util/List;",
     strings = listOf("instagram_share_comment_to_story_entrypoint_impression"),
 )

@@ -124,16 +124,9 @@ internal object UserNameLiveTreeUserDictFingerprint : Fingerprint(
         ),
 )
 
-// `FriendshipStatus` was renamed to `RelationshipInfoDict` (see
-// Constants.FRIENDSHIP_STATUS_CLASS). Nothing in 447 returns a type whose name still ends in
-// "FriendshipStatus;", so the old `ENDS_WITH` declaration matched nothing and this fingerprint
-// threw. Reuse the shared constant so the two cannot drift apart again.
-//
-// On 447 this resolves uniquely: `User;->A1D()Lcom/instagram/api/schemas/RelationshipInfoDict;`
-// is the only getter on the pinned user model returning that type.
 internal object FriendshipStatusLiveTreeUserDictFingerprint : Fingerprint(
     custom = { methodDef, _ -> methodDef.inUserModel() },
-    returnType = Constants.FRIENDSHIP_STATUS_CLASS,
+    returnType = "FriendshipStatus;",
 )
 
 internal object BiographyLiveTreeUserDictFingerprint : Fingerprint(

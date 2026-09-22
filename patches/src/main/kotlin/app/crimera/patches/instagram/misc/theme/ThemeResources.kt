@@ -399,14 +399,11 @@ private fun ResourcePatchContext.readColors(path: String): Map<String, String> {
 private fun resolveBaseColors(
     vararg buckets: Map<String, String>,
 ): Map<String, String> =
-    // 447 no longer ships some baseline tokens (e.g.
-    // baseline_neutral_10_with_surface_tint_dark_alpha_14 and its _alpha_5/_alpha_11
-    // siblings), so requiring every key threw "Unable to resolve base color".
-    // Snapshot only what stock still carries; restore writes back just those.
-    // Verified against 447.0.0.55.81 (385311944).
-    materialYouNamedMappings.keys.mapNotNull { name ->
-        buckets.firstNotNullOfOrNull { it[name] }?.let { name to it }
-    }.toMap()
+    materialYouNamedMappings.keys.associateWith { name ->
+        checkNotNull(buckets.firstNotNullOfOrNull { it[name] }) {
+            "Unable to resolve base color: $name"
+        }
+    }
 
 private fun ResourcePatchContext.writeColors(
     directoryPath: String,

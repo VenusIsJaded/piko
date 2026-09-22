@@ -22,10 +22,6 @@ internal object GetMappingsExtension : Fingerprint(
     definingClass = EXTENSION_CLASS_DESCRIPTOR,
 )
 
-// `definingClass` has no trailing `;`, so Morphe compares it with STARTS_WITH and this matches both
-// `MusicInfo;` (the interface) and `MusicInfoImpl;`. That is deliberate and harmless: the interface
-// and its implementation declare the same getter name (`Cir` on 447), and the only thing read from
-// the match is `.name`, so either candidate yields the same result.
 internal object TrackDataFromMusicInfoMethodFingerprint : Fingerprint(
     definingClass = "Lcom/instagram/api/schemas/MusicInfo",
     returnType = "Lcom/instagram/api/schemas/TrackData;",
