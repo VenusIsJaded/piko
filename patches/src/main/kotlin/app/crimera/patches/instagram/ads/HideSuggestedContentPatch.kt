@@ -20,12 +20,14 @@ import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.Opcode
 
 internal object FeedItemParseFromJsonFingerprint : Fingerprint(
+    // 447 moved `suggested_businesses` and `in_feed_survey` out of the feed-item
+    // parser (LX/0iU;->unsafeParseFromJson still carries the other six), so requiring
+    // all eight matched nothing. The remaining six plus the parseFromJson name still
+    // resolve uniquely on 447. Verified against 447.0.0.55.81 (385311944).
     strings =
         listOf(
-            "suggested_businesses",
             "clips_netego",
             "stories_netego",
-            "in_feed_survey",
             "bloks_netego",
             "suggested_igd_channels",
             "suggested_top_accounts",
