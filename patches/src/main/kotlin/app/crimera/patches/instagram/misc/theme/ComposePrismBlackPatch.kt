@@ -340,9 +340,13 @@ private fun installComposePrismPaletteRuntime(
             } == true
         if (readsPrismField) holderClasses += classDef
     }
-    if (holderClasses.size != EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
+    // 447 ships 4 cached holders instead of 2 (extra day/night variants share the
+    // same palette type); downstream already maps over all holders and requires a
+    // single palette type + consistent ordinals, so accept any count >= 2.
+    // Verified against 447.0.0.55.81 (385311944, found 4).
+    if (holderClasses.size < EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
         throw PatchException(
-            "Expected $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS cached Compose prism " +
+            "Expected at least $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS cached Compose prism " +
                 "palette holders, found ${holderClasses.size}",
         )
     }
@@ -522,9 +526,9 @@ internal fun composePrismRootBackgroundParameterOrdinal(
     paletteType: String,
     holderInitializers: List<List<Instruction>>,
 ): Int {
-    if (holderInitializers.size != EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
+    if (holderInitializers.size < EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS) {
         throw PatchException(
-            "Expected $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS Compose prism palette " +
+            "Expected at least $EXPECTED_COMPOSE_PRISM_PALETTE_HOLDERS Compose prism palette " +
                 "initializers, found ${holderInitializers.size}",
         )
     }
