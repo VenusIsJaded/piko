@@ -118,7 +118,7 @@ val settingsPatch =
                     val contextRegister = contextInstruction.registersUsed[0]
 
                     addInstruction(
-                        contextIndex + 1,
+                        requireContextIndex + 2,
                         """
                         invoke-static{v$contextRegister}, $PATCHES_DESCRIPTOR/WelcomeMessage;->openWelcomeMessage(Landroid/content/Context;)V
                         """.trimIndent(),
