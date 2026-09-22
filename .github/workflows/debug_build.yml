@@ -34,21 +34,31 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew build --stacktrace 2>&1 | tee build.log; echo "EXIT_CODE=${PIPESTATUS[0]}" >> build.log
+          echo "=== LINT ===" >> build.log
           ./gradlew lint --stacktrace 2>&1 | tee -a build.log || true
+          echo "=== LIBS ===" >> build.log
           ls -la patches/build/libs 2>&1 | tee -a build.log || true
+          echo "=== REPORTS ===" >> build.log
           find . -path "*/build/reports/*" -type f 2>&1 | tee -a build.log || true
-          for f in $(find . -path "*lint-results*" -type f 2>/dev/null | head -n 20); do echo "=== $f ==="; cat "$f" | head -n 1000; done 2>&1 | tee -a build.log || true
-          echo "=== TAIL ==="
-          cat build.log | tail -n 2000
+          echo "=== LINT RESULTS ===" >> build.log
+          for f in $(find . -path "*lint-results*" -type f 2>/dev/null | head -n 20); do echo "=== $f ===" >> build.log; cat "$f" | head -n 2000 >> build.log; done || true
+          echo "=== BUILD LOG TAIL ===" >> build.log
+          tail -n 2000 build.log
 
-      - name: Commit log
+      - name: Push log to debug-logs branch
         if: always()
         run: |
           git config user.name "debug-bot"
           git config user.email "debug@example.com"
-          git add build.log || true
-          git commit -m "debug: add build log" || echo "no changes"
-          git push origin HEAD:main || echo "push failed"
+          # Create orphan branch or checkout debug-logs
+          git checkout --orphan debug-logs || git checkout debug-logs
+          git rm -rf . || true
+          mv build.log ./build.log || true
+          ls -la
+          git add build.log
+          git commit -m "debug log $(date)" || echo "no changes"
+          git push origin HEAD:debug-logs --force || echo "push failed"
+          git checkout main
 
       - name: Upload log artifact (fallback)
         if: always()
