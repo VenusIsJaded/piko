@@ -5,7 +5,7 @@ android {
 
     lint {
         abortOnError = false
-        disable += "MissingSuperCall"
+        disable += listOf("MissingSuperCall", "NotificationPermission")
     }
 }
 

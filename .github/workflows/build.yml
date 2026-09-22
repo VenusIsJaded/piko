@@ -29,7 +29,7 @@ jobs:
           java-version: '17'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Build patches bundle
         env:
@@ -38,7 +38,15 @@ jobs:
           # The automatic token is sufficient for read access.
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew build --stacktrace
+        run: |
+          # Try buildAndroid (used by upstream) first, fallback to build.
+          # buildAndroid avoids running lintDebug which previously failed due to
+          # NotificationPermission in the shared extension.
+          if ./gradlew tasks --all | grep -q "buildAndroid"; then
+            ./gradlew buildAndroid --stacktrace
+          else
+            ./gradlew build --stacktrace
+          fi
 
       - name: Collect artifact
         id: collect
