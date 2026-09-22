@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/VenusIsJaded/piko/compare/v1.0.2...v1.0.3) (2026-09-22)
+
+### 🐛 Bug Fixes
+
+* stop lint NotificationPermission from failing patch builds ([6399dee](https://github.com/VenusIsJaded/piko/commit/6399deef40ebae5eed43551894e68f5839585196))
+
 ## [1.0.2](https://github.com/VenusIsJaded/piko/compare/v1.0.1...v1.0.2) (2026-09-21)
 
 ### 🐛 Bug Fixes
