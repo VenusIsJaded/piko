@@ -120,7 +120,7 @@ internal fun createComposePrismColorBridge(
                 )
                 // 447 splits holders across 2 palette types; write only the fields
                 // belonging to this holder's type to keep identical theming.
-                fieldsForType =
+                val fieldsForType =
                     paletteRuntime.backgroundFieldsByType[holder.cachedPaletteField.type]
                 if (fieldsForType == null) {
                     // Palette types built without <init>(J...) (e.g. LX/N7p; on 447,
