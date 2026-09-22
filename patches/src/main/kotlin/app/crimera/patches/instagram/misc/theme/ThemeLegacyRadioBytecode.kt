@@ -70,9 +70,15 @@ internal fun installLegacyNativeThemeModeSync() {
                 null
             }
         }.singleOrNull()
-            ?: throw PatchException(
-                "Expected one legacy theme onResume RadioGroup/adapter binding in $owner",
-            )
+    if (onResumeBinding == null) {
+        // 447 moved this settings screen to Compose: LX/GlH; still builds the
+        // three RadioItems in onCreate, but no onResume RadioGroup/adapter binding
+        // remains to sync. The Compose/overlay paths already theme modern Android,
+        // so there is nothing for the legacy sync to attach to. Skip it instead of
+        // failing the whole Theme patch.
+        // Verified against 447.0.0.55.81 (385311944, 0 bindings in LX/GlH;).
+        return
+    }
     installLegacyOnResumeThemeSync(
         binding = onResumeBinding,
         itemBinding = itemBinding,
